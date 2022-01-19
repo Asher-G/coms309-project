@@ -1,0 +1,118 @@
+stages:
+ - mavenbuild
+ - mavencompile
+ - maventest
+ - androidbuild
+ - androidtest
+
+maven-build:
+  stage: mavenbuild
+  tags: 
+      - spring
+  variables:
+    GIT_STRATEGY: fetch
+  only:
+      variables:
+           - $CI_COMMIT_MESSAGE=~/autodeploy/
+  script:
+    - sudo -u gitlab-runner screen -xr -X quit
+    - cd Backend/
+    - mvn clean package
+    - sudo -u gitlab-runner screen -dmS springboot bash -c "java -jar target/backend-1.0.0.jar"
+
+maven-test:
+  stage: maventest
+  tags: 
+      - spring
+  variables:
+    GIT_STRATEGY: fetch
+  only:
+#      refs:
+#           - main
+      variables:
+           - $CI_COMMIT_MESSAGE=~/maven-test/
+  script:
+    - sudo -u gitlab-runner screen -xr -X quit
+    - cd Backend/
+    - mvn clean package
+    - sudo -u gitlab-runner screen -dmS springboot bash -c "java -jar /home/gitlab-runner/3_rk_6/Backend/target/backend-1.0.0.jar"
+    - sleep 20
+    - curl localhost:8080/users/get -X GET
+    - sudo -u gitlab-runner screen -xr -X quit
+
+maven-test-compile:
+  stage: mavencompile
+  tags: 
+      - spring
+  variables:
+    GIT_STRATEGY: fetch
+  only:
+#      refs:
+#           - master
+      variables:
+           - $CI_COMMIT_MESSAGE=~/maven-compile/
+  script:
+    - cd Backend/
+    - mvn clean package
+
+
+
+android-build: #this is another job
+  image: gjandres/android-ci:latest      # this is a directive to DOCKER
+  stage: androidbuild
+  tags:
+   - android_tag         #this is LINK to the docker runner on the remote-server        
+  before_script:
+    - export GRADLE_USER_HOME=`pwd`/Frontend/Airplanned/.gradle
+    - chmod +x ./Frontend/Airplanned/gradlew
+  script:
+    - cd Frontend/Airplanned
+    - ./gradlew assemble
+
+
+
+android-test:
+  image: gjandres/android-ci:latest      # this is a directive to DOCKER
+  stage: androidtest
+  tags:
+   - android_tag    
+  before_script:
+    - export GRADLE_USER_HOME=`pwd`/Frontend/Airplanned/.gradle
+    - chmod +x ./Frontend/Airplanned/gradlew
+  script:
+    - cd Frontend/Airplanned
+    - ./gradlew build 
+
+
+#android-build:
+#  image: javiersantos/android-ci:latest
+#  stage: androidbuild
+#  tags:
+#   - frontend_tag
+#    # variables:
+#    #     - $CI_COMMIT_MESSAGE=~/android-build/
+#  before_script:
+#    # - cd /home/gitlab-runner/3_rk_6/
+#    - export GRADLE_USER_HOME=`pwd`/Frontend/.gradle
+#    - chmod +x ./Frontend/Airplanned/gradlew
+# 
+#  script:
+#    - cd Frontend/Airplanned
+#    - ./gradlew assemble #build
+
+
+#android-test:
+#  image: javiersantos/android-ci:latest
+#  stage: androidbuild
+#  tags:
+#   - frontend_tag
+#    # variables:
+#    #     - $CI_COMMIT_MESSAGE=~/android-test/
+#  before_script:
+#    # - cd /home/gitlab-runner/3_rk_6/
+#    - export GRADLE_USER_HOME=`pwd`/Frontend/.gradle
+#    - chmod +x ./Frontend/Airplanned/gradlew
+# 
+#  script:
+#    - cd Frontend/Airplanned
+#    - ./gradlew assemble #build

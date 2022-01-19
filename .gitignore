@@ -1,0 +1,6 @@
+Backend/.idea
+Backend/.idea/*
+Backend/*.xml
+Backend/*.iml
+Backend/target/*
+Backend/target
